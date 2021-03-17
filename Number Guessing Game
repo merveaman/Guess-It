@@ -1,0 +1,160 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+
+/*
+ * Merve Aman
+ */
+
+struct Node {
+    int number[4];
+    struct Node* next;
+};
+struct Node* head = NULL;
+
+void printList(struct Node* n)
+{
+    while (n != NULL) {
+        printf(" %d%d%d%d \n", n->number[0],n->number[1],n->number[2],n->number[3]);
+        n = n->next;
+    }
+}
+void divide_numbers_to_arrays(int number, int *num_array)
+{
+    int number_mod,i;
+    for(i=0; i<4 ;i++)
+    {
+        number_mod=number%10;
+        num_array[3-i]=number_mod;
+        number=number/10;
+    }
+}
+bool isNumberValid(int number){
+    int numArr[4];
+    int i,j;
+    if (number<1023 || number>9876) return false; //number should have 4 digits only
+    divide_numbers_to_arrays(number, numArr);
+    for (i = 0; i < 4; ++i) {
+        for (j = 0; j < 4; ++j) {
+            if (i!=j && numArr[i]==numArr[j])
+                return false;
+        }
+    }
+    return true;
+}
+void guess_it_player(int my_num_player, int comp_number)
+{
+    int player_number[4];
+    divide_numbers_to_arrays(my_num_player, player_number);
+    int computer_number[4];
+    divide_numbers_to_arrays(comp_number, computer_number);
+    int plus_count=0;
+    int minus_count=0;
+    int i,j;
+    for(i=0;i<4;i++)
+    {
+        if(player_number[i] == computer_number[i])
+        {
+            plus_count++;
+            // if both the value and place of a digit is correct it will be counted for +
+        }
+        else
+        {
+            for (j = 0; j < 4; ++j) {
+                if (i!=j && player_number[i]==computer_number[j]) {
+                    minus_count++;
+                    break; // this break command will prevent counting more than once per digit and unnecessary loop iterations.
+                }
+                // if the number is correct for another place of the other number, it will be counted for -
+            }
+        }
+    }
+    printf("Player guess: %d\n+%d- %d\n",my_num_player,plus_count,minus_count);
+}
+
+int guess_it_computer()
+{
+    struct Node* temp = head;
+    /*
+     * Computer guessing is just brute force trying all the possible
+     * number combinations. Head pointer is a pointer to a linked list with all possible numbers
+     * that gets generated in the main function.
+     * Every iteration computer tries the next number and if fails it will remove that number from the list.
+     * If the user is telling the truth about number, the list method will be successful eventually.
+     */
+    printf("\nIs the number you choose: %d%d%d%d?\nY or N:",head->number[0],head->number[1],head->number[2],head->number[3]);
+    fflush(stdin);
+    char answer;
+    scanf("%c",&answer);
+    fflush(stdin);
+    if (answer=='Y' || answer=='y')
+    {
+        printf("\nComputer won!");
+        return 1; //successful return
+    }
+    else
+    {
+        // the following code removes the first element in the linked list
+        head = head->next;
+        free(temp);
+        printf("\nI will get it next time");
+    }
+    return 0; // unsuccessful return
+}
+
+int main()
+{
+	int i;
+    struct Node* tail = NULL;
+    struct Node* tempNode = NULL;
+    srand(time(NULL)); // feeding random seed with time data
+    int size = 0;
+    head = (struct Node*)malloc(sizeof(struct Node)); // initializing the first element
+    head->number[0] =1;
+    head->number[1] =0;
+    head->number[2] =2;
+    head->number[3] =3;
+    head->next=NULL;
+    size++;
+    tail= head; // head always keeps track of first element. I will use tail for traversing the list
+    for (i = 1024; i < 9999; ++i) {
+        if (isNumberValid(i)){
+            tail->next = (struct Node*)malloc(sizeof(struct Node));
+            tail->next->next=NULL;
+            divide_numbers_to_arrays(i,tail->next->number);
+            size++;
+            tail=tail->next;
+        }
+    }
+    int r = rand() % (size-1); // here i choose the computer's secret number from the list randomly. the r th element in the list is chosen.
+    tempNode = head; // using tempnode for traversing the list.
+    int computers_secret_number, player_guess;
+    for (i = 0; i < r; ++i) {
+        tempNode=tempNode->next;
+    }
+    computers_secret_number = tempNode->number[3] + tempNode->number[2]*10 +tempNode->number[1]*100 +tempNode->number[0]*1000;
+    while (true){ // the main game loop
+        printf("\nPlease enter your guess \n");
+        fflush(stdin);
+        char tempchar;
+        scanf("%d%c",&player_guess,&tempchar); // i used the tempchar to catch enter press. otherwise the next input might get empty input.
+        fflush(stdin);
+        if (!isNumberValid(player_guess))
+        {
+            printf("\nPlease enter a valid number with differing digits.\n");
+            continue;
+        }
+        guess_it_player(player_guess, computers_secret_number);
+        if (player_guess == computers_secret_number) {
+            printf("\nCongratulations you won!");
+            break;
+        }
+        if (guess_it_computer(head) || size == 0)
+        {
+            break;
+        }
+        size--;
+    }
+    return 0;
+}
